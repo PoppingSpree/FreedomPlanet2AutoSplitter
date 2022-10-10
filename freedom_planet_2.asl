@@ -157,5 +157,5 @@ shutdown
 
 gameTime
 {
-    return TimeSpan.FromSeconds(vars.Unity["playTime"].Current);
+    return TimeSpan.FromSeconds(vars.Unity["playTime"].Current / 60);
 }
