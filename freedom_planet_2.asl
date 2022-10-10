@@ -18,7 +18,6 @@ ILs probably specifically don't want to use this and should probably instead use
 
 state("FP2")
 {
-
 }
 
 state("Freedom Planet 2")
@@ -126,6 +125,7 @@ split
 {
 	if (vars.Unity["isJinglePlaying"].Current
 	    && vars.Unity["currentJingleID"].Current == 1
+	    && vars.Unity["currentJingleID"].Old != 1
 	    && !vars.Unity["stageNameString"].Current.Equals("")) 
 	{
 	    return true;
