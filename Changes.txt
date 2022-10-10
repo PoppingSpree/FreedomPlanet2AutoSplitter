@@ -1,0 +1,5 @@
+--------------------------------------------------
+9 October 2022
+--------------------------------------------------
+
+Started reading through the docs and creating the initial ASL scripts.
