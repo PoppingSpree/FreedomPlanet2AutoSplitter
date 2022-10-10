@@ -1,5 +1,7 @@
 /*
 Notes: 
+This AutoSplitter REQUIRES Just-Ero's UnityASL component: https://github.com/just-ero/asl-help/blob/main/Components/UnityASL.bin
+Download it and copy it into your LiveSplit install's Components folder. For example ```LiveSplit_1.7.6\Components\```
 
 // Based on FashionPoliceSquad's Auto-Splitter by Corvimae: https://github.com/Corvimae/FPS-Autosplitter/blob/main/FashionPoliceSquad.asl
 // and The Stanley Parable Ultra Deluxe Auto-Splitter by NikoHeartTTV: https://github.com/Nikoheartttv/TheStanleyParableUltraDeluxe_Autosplitter/blob/main/TSPUD_AutoSplitter.asl
@@ -15,6 +17,11 @@ ILs probably specifically don't want to use this and should probably instead use
 */
 
 state("FP2")
+{
+
+}
+
+state("Freedom Planet 2")
 {
 
 }
@@ -46,14 +53,31 @@ startup
 init 
 {
     current.Event = "";
-    current.Scene = -1;
+    current.Scene = "none";
 
     vars.Unity.TryOnLoad = (Func<dynamic, bool>)(helper =>
     {        
         var FPStage = helper.GetClass("Assembly-CSharp", "FPStage");
         var FPSaveManager = helper.GetClass("Assembly-CSharp", "FPSaveManager");
+        var FPPlayer = helper.GetClass("Assembly-CSharp", "FPPlayer");
+        var FPMenu = helper.GetClass("Assembly-CSharp", "FPMenu");
+        var FPAudio = helper.GetClass("Assembly-CSharp", "FPAudio");
         
-        vars.Unity.Make<double>(FPSaveManager.Static, FPSaveManager["currentSave"], FPSaveManager["playTime"]).Name = "playTime";
+        //vars.Unity.Make<double>(FPSaveManager.Static, FPSaveManager["currentSave"], FPSaveManager["playTime"]).Name = "playTime";
+        vars.Unity.Make<double>(FPSaveManager.Static, FPSaveManager["playTime"]).Name = "playTime";
+        vars.Unity.MakeString(FPStage.Static, FPStage["currentStage"], FPStage["stageName"]).Name = "stageName";
+        vars.Unity.MakeString(FPStage.Static, FPStage["stageNameString"]).Name = "stageNameString";
+        vars.Unity.Make<bool>(FPStage.Static, FPStage["timeEnabled"]).Name = "timeEnabled";
+        
+        vars.Unity.Make<float>(FPStage.Static, FPStage["frameTime"]).Name = "menuFrameTime";
+        
+        vars.Unity.Make<byte>(FPStage.Static, FPStage["currentStage"], FPStage["seconds"]).Name = "seconds";
+        
+        vars.Unity.Make<bool>(FPAudio.Static, FPAudio["isJinglePlaying"]).Name = "isJinglePlaying";
+        vars.Unity.Make<int>(FPAudio.Static, FPAudio["currentJingle"]).Name = "currentJingleID"; //ID 1 is Victory
+        
+        // if FPAudio.currentJingle = 1 and it's currently playing 1 then we're probably in the victory state. FPStage.timeEnabled is also probably false; and FPStage should not be empty.
+        
 
         return true;
     });
@@ -68,26 +92,43 @@ update
 	{
 	    return false;
 	}
-
-	vars.Unity.Update();  
-    current.Scene = vars.Unity.Scenes.Active.Name;
-    current.isLoading = (current.Scene.Equals("Loading"));
+	
+	vars.Unity.Update();
+	
+	//vars.Log("timeEnabled: " + vars.Unity["timeEnabled"].Current);
+	//vars.Log("seconds: " + vars.Unity["seconds"].Current);
+	
+	
+	//vars.Log("playTime: " + vars.Unity["playTime"].Current);
+	//vars.Log("vars.Unity:" + vars.Unity);
+	//vars.Log("vars.Unity.Scenes:" + vars.Unity.Scenes);
+	
+	//vars.Log("stageName: " + vars.Unity["stageName"].Current);
+	//vars.Log("stageNameString: " + vars.Unity["stageNameString"].Current);
+	
+	//vars.Log("vars.Unity.Scenes.Active:" + vars.Unity.Scenes.Active);
+	//vars.Log("vars.Unity.Scenes.Active.Name:" + vars.Unity.Scenes.Active.Name);
+	
+	if (vars.Unity["stageNameString"].Current != null 
+	    && !vars.Unity["stageNameString"].Current.Equals(""))
+    {
+        current.Scene = vars.Unity["stageNameString"].Current;
+        vars.Log("Save file reports current stage as: " + vars.Unity["stageNameString"].Current);
+    }
 }
 
 start
 {
-	return (old.Scene != "ClassicMenu" && current.Scene == "ClassicMenu")
-            || (old.Scene != "Cutscene_NewGame" && current.Scene == "Cutscene_NewGame");
+	return (vars.Unity["playTime"].Old <= 0 && vars.Unity["playTime"].Current > 0);
 }
 
 split
 {
-	if (old.Scene != "ClassicMenu" && current.Scene == "ClassicMenu")
-	    || (old.Scene != "Cutscene_NewGame" && current.Scene == "Cutscene_NewGame")
+	if (vars.Unity["isJinglePlaying"].Current
+	    && vars.Unity["currentJingleID"].Current == 1
+	    && !vars.Unity["stageNameString"].Current.Equals("")) 
 	{
-		vars.Log("Scene changed: " + old.Scene + " -> " + current.Scene);
-
-    return true;
+	    return true;
 	}
 
   return false;
@@ -95,12 +136,13 @@ split
 
 reset
 {
-  return old.Scene != "MainMenu" && current.Scene == "MainMenu";
+  return old.Scene != "MainMenu" && current.Scene == "MainMenu"; // As is, this will never trigger because FPStage does not have a name at the menu.
 }
 
 isLoading
 {
-	return current.isLoading;
+	//return current.isLoading;
+	return true; // Force to always use what the game reports.
 }
 
 exit
@@ -115,5 +157,5 @@ shutdown
 
 gameTime
 {
-    return TimeSpan.FromMilliseconds(vars.Unity["playTime"].Current)
+    return TimeSpan.FromSeconds(vars.Unity["playTime"].Current);
 }

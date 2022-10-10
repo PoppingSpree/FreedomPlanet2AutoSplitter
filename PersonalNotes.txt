@@ -1,0 +1,5 @@
+This library must be present in the LiveSplit installation's Components folder. Get them directly from asl-help's github repo 
+D:\Code\Autosplitter\ref\asl-help-main\lib
+https://github.com/just-ero/asl-help/raw/main/lib/UnityASL.bin
+
+  
