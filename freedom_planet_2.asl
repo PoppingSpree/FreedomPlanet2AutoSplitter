@@ -30,6 +30,7 @@ startup
     vars.Log = (Action<object>)(output => print("[FP2] " + output));
     vars.Unity = Assembly.Load(File.ReadAllBytes(@"Components\UnityASL.bin")).CreateInstance("UnityASL.Unity");
     vars.Unity.LoadSceneManager = true;
+    vars.shouldSplit = false;
     
     settings.Add("any", true, "Any%");
     settings.Add("true-ending", false, "True Ending");
@@ -47,6 +48,49 @@ startup
         if (mbox == DialogResult.Yes)
             timer.CurrentTimingMethod = TimingMethod.GameTime;
     }
+
+    var pathToFPSaves = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+    pathToFPSaves = Path.Combine(pathToFPSaves, @"..\LocalLow\GalaxyTrail\Freedom Planet 2\");
+    vars.Log("pathToFPSaves: " + pathToFPSaves);
+    // C:\Users\blah\AppData\Roaming ->
+    // C:\Users\blah\AppData\Roaming\..\LocalLow\GalaxyTrail\Freedom Planet 2\(filenum).json
+
+    vars.OnFileChanged = (Action<object,FileSystemEventArgs>)((object sender, FileSystemEventArgs e) => 
+        {
+            if (e.ChangeType != WatcherChangeTypes.Changed)
+            {
+            }
+            else 
+            {
+                vars.Log("Changed: " + e.FullPath);
+                if (!e.FullPath.Contains("global.json")) 
+                {
+                    // We're getting an event for a json file other than globals. Almost certainly a save file. Go ahead and split.
+                    vars.shouldSplit = true;
+                }
+            }
+        });
+
+    vars.Log("dab");
+
+    vars.PrepFileWatcher = (Action<string>)((string pathToFolder) => 
+        {
+            var watcher = new FileSystemWatcher(pathToFolder);
+
+            watcher.NotifyFilter = NotifyFilters.CreationTime
+                                 | NotifyFilters.DirectoryName
+                                 | NotifyFilters.FileName
+                                 | NotifyFilters.LastWrite
+                                 | NotifyFilters.Size;
+
+            watcher.Changed += vars.OnChanged;
+
+            watcher.Filter = "*.json";
+            watcher.IncludeSubdirectories = false;
+            watcher.EnableRaisingEvents = true;
+        });
+
+    vars.PrepFileWatcher(pathToFPSaves);
 }
 
 init 
@@ -64,6 +108,10 @@ init
         
         //vars.Unity.Make<double>(FPSaveManager.Static, FPSaveManager["currentSave"], FPSaveManager["playTime"]).Name = "playTime";
         vars.Unity.Make<double>(FPSaveManager.Static, FPSaveManager["playTime"]).Name = "playTime";
+        //vars.Unity.Make<int[]>(FPSaveManager.Static, FPSaveManager["timeRecord"]).Name = "timeRecord";
+        //vars.Unity.Make<int[]>(FPSaveManager.Static, FPSaveManager["challengeRecord"]).Name = "challengeRecord";
+        
+
         vars.Unity.MakeString(FPStage.Static, FPStage["currentStage"], FPStage["stageName"]).Name = "stageName";
         vars.Unity.MakeString(FPStage.Static, FPStage["stageNameString"]).Name = "stageNameString";
         vars.Unity.Make<bool>(FPStage.Static, FPStage["timeEnabled"]).Name = "timeEnabled";
@@ -80,6 +128,7 @@ init
 
         return true;
     });
+
 
     vars.Unity.Load(game);
 
@@ -113,7 +162,13 @@ update
     {
         current.Scene = vars.Unity["stageNameString"].Current;
         vars.Log("Save file reports current stage as: " + vars.Unity["stageNameString"].Current);
+        vars.Log("Save file reports current stage as: " + vars.Unity["stageName"].Current);
     }
+    if (!current.Scene.Equals(old.Scene))
+    {
+        vars.Log("Scene name changed: {" + old.Scene + "} -> {" + current.Scene + "}");
+    }
+
 }
 
 start
@@ -123,6 +178,12 @@ start
 
 split
 {
+    if (vars.shouldSplit) 
+    {
+        vars.shouldSplit = false;
+        return true;
+    }
+
 	if (vars.Unity["isJinglePlaying"].Current
 	    && vars.Unity["currentJingleID"].Current == 1
 	    && vars.Unity["currentJingleID"].Old != 1
@@ -147,11 +208,13 @@ isLoading
 
 exit
 {
+    watcher.Dispose();
 	vars.Unity.Reset();
 }
 
 shutdown
 {
+    watcher.Dispose();
 	vars.Unity.Reset();
 }
 
