@@ -52,8 +52,6 @@ startup
     var pathToFPSaves = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
     pathToFPSaves = Path.Combine(pathToFPSaves, @"..\LocalLow\GalaxyTrail\Freedom Planet 2\");
     vars.Log("pathToFPSaves: " + pathToFPSaves);
-    // C:\Users\blah\AppData\Roaming ->
-    // C:\Users\blah\AppData\Roaming\..\LocalLow\GalaxyTrail\Freedom Planet 2\(filenum).json
 
     vars.OnFileChanged = (FileSystemEventHandler)((object sender, FileSystemEventArgs e) => 
         {
@@ -106,36 +104,17 @@ init
     {        
         var FPStage = helper.GetClass("Assembly-CSharp", "FPStage");
         var FPSaveManager = helper.GetClass("Assembly-CSharp", "FPSaveManager");
-        var FPPlayer = helper.GetClass("Assembly-CSharp", "FPPlayer");
-        var FPMenu = helper.GetClass("Assembly-CSharp", "FPMenu");
-        var FPPauseMenu = helper.GetClass("Assembly-CSharp", "FPPauseMenu");
-        var FPAudio = helper.GetClass("Assembly-CSharp", "FPAudio");
         
-        //vars.Unity.Make<double>(FPSaveManager.Static, FPSaveManager["currentSave"], FPSaveManager["playTime"]).Name = "playTime";
         vars.Unity.Make<double>(FPSaveManager.Static, FPSaveManager["playTime"]).Name = "playTime";
-        //vars.Unity.Make<int[]>(FPSaveManager.Static, FPSaveManager["timeRecord"]).Name = "timeRecord";
         vars.Unity.Make<int>(FPSaveManager.Static, FPSaveManager["lastMapLocation"]).Name = "lastMapLocation";
-        //vars.Unity.Make<int[]>(FPSaveManager.Static, FPSaveManager["challengeRecord"]).Name = "challengeRecord";
         
-
         vars.Unity.MakeString(FPStage.Static, FPStage["currentStage"], FPStage["stageName"]).Name = "stageName";
         vars.Unity.MakeString(FPStage.Static, FPStage["stageNameString"]).Name = "stageNameString";
         vars.Unity.Make<bool>(FPStage.Static, FPStage["timeEnabled"]).Name = "timeEnabled";
-        //vars.Unity.Make<FPPlayer>(FPStage.Static, FPStage["fpPlayer"]).Name = "fpPlayer";
         
         vars.Unity.Make<float>(FPStage.Static, FPStage["frameTime"]).Name = "menuFrameTime";
         
         vars.Unity.Make<byte>(FPStage.Static, FPStage["currentStage"], FPStage["seconds"]).Name = "seconds";
-        
-        vars.Unity.Make<bool>(FPAudio.Static, FPAudio["isJinglePlaying"]).Name = "isJinglePlaying";
-        vars.Unity.Make<int>(FPAudio.Static, FPAudio["currentJingle"]).Name = "currentJingleID"; //ID 1 is Victory
-
-        //vars.Unity.Make<FPMenu>(FPMenu.Static, FPMenu["currentMenu"]).Name = "currentMenu";
-        //vars.Unity.Make<int>(FPMenu.Static, FPMenu["currentMenu"], FPPauseMenu["menuSelection"]).Name = "menuSelection";
-        //vars.Unity.Make<int>(FPStage.Static, FPStage["pauseMenuObj"], FPPauseMenu["menuSelection"]).Name = "menuSelection";
-        
-        // if FPAudio.currentJingle = 1 and it's currently playing 1 then we're probably in the victory state. FPStage.timeEnabled is also probably false; and FPStage should not be empty.
-        
 
         return true;
     });
@@ -157,40 +136,19 @@ update
 
     current.lastMapLocation = vars.Unity["lastMapLocation"].Current;
 	
-	//vars.Log("timeEnabled: " + vars.Unity["timeEnabled"].Current);
-	//vars.Log("seconds: " + vars.Unity["seconds"].Current);
-	
-	
-	//vars.Log("playTime: " + vars.Unity["playTime"].Current);
-	//vars.Log("vars.Unity:" + vars.Unity);
-	//vars.Log("vars.Unity.Scenes:" + vars.Unity.Scenes);
-	
-	//vars.Log("stageName: " + vars.Unity["stageName"].Current);
-	//vars.Log("stageNameString: " + vars.Unity["stageNameString"].Current);
-	
-	//vars.Log("vars.Unity.Scenes.Active:" + vars.Unity.Scenes.Active);
-	//vars.Log("vars.Unity.Scenes.Active.Name:" + vars.Unity.Scenes.Active.Name);
-	
 	if (vars.Unity["stageNameString"].Current != null 
 	    && !vars.Unity["stageNameString"].Current.Equals(""))
     {
         current.Scene = vars.Unity["stageNameString"].Current;
         current.IsInLevel = true;
-        vars.Log("Save file reports current stage as: " + vars.Unity["stageNameString"].Current);
-        //vars.Log("Save file reports current stage as: " + vars.Unity["stageName"].Current);
+        //vars.Log("Save file reports current stage as: " + vars.Unity["stageNameString"].Current);
     }
     else 
     {
         current.IsInLevel = false;
     }
-    
-    //vars.Log("Menu Selection: " + vars.Unity["menuSelection"].Current);
-    
-    // Never split when player restarts the stage.
 
-
-    //vars.Log("lastMapLocation: " + vars.Unity["lastMapLocation"].Current);
-    //if (vars.Unity["menuSelection"].Current == 5)
+    // Prevent bad splits from Restart Stage by clearing all flags on map's level select stage change.
     if (current.lastMapLocation != old.lastMapLocation)
 	{
 		vars.shouldSplit = false;
@@ -206,16 +164,7 @@ start
 
 split
 {
-
-/*
-	if (vars.Unity["isJinglePlaying"].Current
-	    && vars.Unity["currentJingleID"].Current == 1
-	    && vars.Unity["currentJingleID"].Old != 1
-	    && !vars.Unity["stageNameString"].Current.Equals(""))
-*/
-
     if (!current.IsInLevel && old.IsInLevel //Just exited a level.
-        // Level Name has changed?
         && vars.shouldSplit // Save file has changed.
         && current.timeToggled) // The timer has changed from enabled to disabled since the last split.)
 	{
@@ -234,19 +183,18 @@ reset
 
 isLoading
 {
-	//return current.isLoading;
 	return true; // Force to always use what the game reports.
 }
 
 exit
 {
-    //vars.watcher.Dispose();
+    vars.watcher.Dispose();
 	vars.Unity.Reset();
 }
 
 shutdown
 {
-    //vars.watcher.Dispose();
+    vars.watcher.Dispose();
 	vars.Unity.Reset();
 }
 
