@@ -38,7 +38,7 @@ startup
         settings.Add("true-ending", false, "True Ending");
         settings.Add("boss-rush", false, "Boss Rush");
         settings.Add("extra", false, "Extra Content");
-        
+         
         
         if (timer.CurrentTimingMethod == TimingMethod.RealTime)
         {
@@ -147,7 +147,7 @@ update
 	
 	vars.Unity.Update();
     current.timeEnabled = vars.Unity["timeEnabled"].Current;
-    if (current.IsInLevel && old.IsInLevel (!current.timeEnabled && old.timeEnabled)) {current.timeToggled = true;}
+    if (current.IsInLevel && old.IsInLevel && (!current.timeEnabled && old.timeEnabled)) {current.timeToggled = true;}
 
     if (vars.Unity["lastMapLocation"].Current != null && vars.Unity["lastMapLocation"].Current > -1) 
     {
