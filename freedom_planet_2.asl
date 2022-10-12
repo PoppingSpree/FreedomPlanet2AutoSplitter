@@ -101,7 +101,7 @@ init
     current.lastMapLocation = -1;
 
     vars.Unity.TryOnLoad = (Func<dynamic, bool>)(helper =>
-    {        
+    {
         var FPStage = helper.GetClass("Assembly-CSharp", "FPStage");
         var FPSaveManager = helper.GetClass("Assembly-CSharp", "FPSaveManager");
         
@@ -132,9 +132,12 @@ update
 	
 	vars.Unity.Update();
     current.timeEnabled = vars.Unity["timeEnabled"].Current;
-    if (current.IsInLevel && (!current.timeEnabled && old.timeEnabled)) {current.timeToggled = true;}
+    if (current.IsInLevel && old.IsInLevel (!current.timeEnabled && old.timeEnabled)) {current.timeToggled = true;}
 
-    current.lastMapLocation = vars.Unity["lastMapLocation"].Current;
+    if (vars.Unity["lastMapLocation"].Current != null && vars.Unity["lastMapLocation"].Current > -1) 
+    {
+        current.lastMapLocation = vars.Unity["lastMapLocation"].Current;
+    }
 	
 	if (vars.Unity["stageNameString"].Current != null 
 	    && !vars.Unity["stageNameString"].Current.Equals(""))
@@ -148,12 +151,14 @@ update
         current.IsInLevel = false;
     }
 
+
     // Prevent bad splits from Restart Stage by clearing all flags on map's level select stage change.
     if (current.lastMapLocation != old.lastMapLocation)
 	{
 		vars.shouldSplit = false;
         current.timeToggled = false;
         current.IsInLevel = false;
+        vars.Log("LastMap Changed. Resetting flags.");
 	}
 }
 
