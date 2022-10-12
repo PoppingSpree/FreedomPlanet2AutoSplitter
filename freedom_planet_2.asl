@@ -28,67 +28,82 @@ state("Freedom Planet 2")
 startup
 {
     vars.Log = (Action<object>)(output => print("[FP2] " + output));
-    vars.Unity = Assembly.Load(File.ReadAllBytes(@"Components\UnityASL.bin")).CreateInstance("UnityASL.Unity");
-    vars.Unity.LoadSceneManager = true;
-    vars.shouldSplit = false;
-    
-    settings.Add("any", true, "Any%");
-    settings.Add("true-ending", false, "True Ending");
-    settings.Add("boss-rush", false, "Boss Rush");
-    settings.Add("extra", false, "Extra Content");
-    
-    
-    if (timer.CurrentTimingMethod == TimingMethod.RealTime)
+    try
+    {
+        vars.Unity = Assembly.Load(File.ReadAllBytes(@"Components\UnityASL.bin")).CreateInstance("UnityASL.Unity");
+        vars.Unity.LoadSceneManager = true;
+        vars.shouldSplit = false;
+        
+        settings.Add("any", true, "Any%");
+        settings.Add("true-ending", false, "True Ending");
+        settings.Add("boss-rush", false, "Boss Rush");
+        settings.Add("extra", false, "Extra Content");
+        
+        
+        if (timer.CurrentTimingMethod == TimingMethod.RealTime)
+        {
+            var mbox = MessageBox.Show(
+                "The Freedom Planet 2 Auto-Splitter uses in-game time from the active save file.\nWould you like to switch to it?",
+                "LiveSplit | Freedom Planet 2",
+                MessageBoxButtons.YesNo);
+
+            if (mbox == DialogResult.Yes)
+                timer.CurrentTimingMethod = TimingMethod.GameTime;
+        }
+
+        var pathToFPSaves = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        pathToFPSaves = Path.Combine(pathToFPSaves, @"..\LocalLow\GalaxyTrail\Freedom Planet 2\");
+        vars.Log("pathToFPSaves: " + pathToFPSaves);
+
+        vars.OnFileChanged = (FileSystemEventHandler)((object sender, FileSystemEventArgs e) => 
+            {
+                if (e.ChangeType != WatcherChangeTypes.Changed)
+                {
+                }
+                else 
+                {
+                    vars.Log("Changed: " + e.FullPath);
+                    if (!e.FullPath.Contains("global.json")) 
+                    {
+                        // We're getting an event for a json file other than globals. Almost certainly a save file. Go ahead and split.
+                        vars.shouldSplit = true;
+                    }
+                }
+            });
+
+        vars.Log("dab");
+
+        vars.PrepFileWatcher = (Action<string>)((string pathToFolder) =>
+            {
+                vars.watcher = new FileSystemWatcher(pathToFolder);
+
+                vars.watcher.NotifyFilter = NotifyFilters.CreationTime
+                                     | NotifyFilters.DirectoryName
+                                     | NotifyFilters.FileName
+                                     | NotifyFilters.LastWrite
+                                     | NotifyFilters.Size;
+
+                vars.watcher.Changed += new FileSystemEventHandler(vars.OnFileChanged);
+
+                vars.watcher.Filter = "*.json";
+                vars.watcher.IncludeSubdirectories = false;
+                vars.watcher.EnableRaisingEvents = true;
+            });
+
+        vars.PrepFileWatcher(pathToFPSaves);
+    }
+    catch (Exception e) 
     {
         var mbox = MessageBox.Show(
-            "The Freedom Planet 2 Auto-Splitter uses in-game time from the active save file.\nWould you like to switch to it?",
-            "LiveSplit | Freedom Planet 2",
-            MessageBoxButtons.YesNo);
+                @"This AutoSplitter REQUIRES Just-Ero's UnityASL component: https://github.com/just-ero/asl-help/blob/main/Components/UnityASL.bin" + "\r\n" +
+                    @"Download it and copy it into your LiveSplit install's Components folder. For example <LiveSplit_1.7.6\Components\>",
+                "LiveSplit | Freedom Planet 2",
+                //MessageBoxButtons.RetryCancel);
+                MessageBoxButtons.OK);
 
-        if (mbox == DialogResult.Yes)
-            timer.CurrentTimingMethod = TimingMethod.GameTime;
-    }
-
-    var pathToFPSaves = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-    pathToFPSaves = Path.Combine(pathToFPSaves, @"..\LocalLow\GalaxyTrail\Freedom Planet 2\");
-    vars.Log("pathToFPSaves: " + pathToFPSaves);
-
-    vars.OnFileChanged = (FileSystemEventHandler)((object sender, FileSystemEventArgs e) => 
-        {
-            if (e.ChangeType != WatcherChangeTypes.Changed)
-            {
-            }
-            else 
-            {
-                vars.Log("Changed: " + e.FullPath);
-                if (!e.FullPath.Contains("global.json")) 
-                {
-                    // We're getting an event for a json file other than globals. Almost certainly a save file. Go ahead and split.
-                    vars.shouldSplit = true;
-                }
-            }
-        });
-
-    vars.Log("dab");
-
-    vars.PrepFileWatcher = (Action<string>)((string pathToFolder) =>
-        {
-            vars.watcher = new FileSystemWatcher(pathToFolder);
-
-            vars.watcher.NotifyFilter = NotifyFilters.CreationTime
-                                 | NotifyFilters.DirectoryName
-                                 | NotifyFilters.FileName
-                                 | NotifyFilters.LastWrite
-                                 | NotifyFilters.Size;
-
-            vars.watcher.Changed += new FileSystemEventHandler(vars.OnFileChanged);
-
-            vars.watcher.Filter = "*.json";
-            vars.watcher.IncludeSubdirectories = false;
-            vars.watcher.EnableRaisingEvents = true;
-        });
-
-    vars.PrepFileWatcher(pathToFPSaves);
+            if (mbox == DialogResult.OK)
+                timer.CurrentTimingMethod = TimingMethod.GameTime;
+    } 
 }
 
 init 
