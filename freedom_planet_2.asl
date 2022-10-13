@@ -34,10 +34,10 @@ startup
         vars.Unity.LoadSceneManager = true;
         vars.shouldSplit = false;
         
-        settings.Add("any", true, "Any%");
-        settings.Add("true-ending", false, "True Ending");
-        settings.Add("boss-rush", false, "Boss Rush");
-        settings.Add("extra", false, "Extra Content");
+        //settings.Add("any", true, "Any%");
+        //settings.Add("true-ending", false, "True Ending");
+        //settings.Add("boss-rush", false, "Boss Rush");
+        //settings.Add("extra", false, "Extra Content");
          
         
         if (timer.CurrentTimingMethod == TimingMethod.RealTime)
